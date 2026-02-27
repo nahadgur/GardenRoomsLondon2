@@ -36,36 +36,28 @@ export async function POST(req: Request) {
       cache: "no-store",
     });
 
-    let appsScriptJson: any = null;
     const rawText = await appsScriptRes.text();
+    let appsScriptJson: any = null;
+    try { appsScriptJson = JSON.parse(rawText); } catch {}
 
-    try {
-      appsScriptJson = JSON.parse(rawText);
-    } catch {
-      appsScriptJson = null;
+    if (appsScriptJson?.ok === true) {
+      return NextResponse.json({ ok: true, message: "Lead submitted successfully." }, { status: 200 });
     }
 
-    const okFromScript = appsScriptJson?.ok === true;
+    // Return the actual Apps Script error to the form so you can see it
+    return NextResponse.json(
+      {
+        ok: false,
+        error: appsScriptJson?.error || rawText?.slice(0, 500) || "Apps Script call failed.",
+      },
+      { status: 502 }
+    );
 
-    if (!appsScriptRes.ok || !okFromScript) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Apps Script call failed.",
-          appsScriptStatus: appsScriptRes.status,
-          appsScriptParsed: appsScriptJson,
-          appsScriptRaw: rawText?.slice(0, 2000),
-        },
-        { status: 502 }
-      );
-    }
-
-    return NextResponse.json({ ok: true, message: "Lead submitted successfully." }, { status: 200 });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: String(err?.message || err) }, { status: 500 });
   }
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, message: "Lead endpoint is up. Use POST to submit leads." }, { status: 200 });
+  return NextResponse.json({ ok: true, message: "Lead endpoint is up. Use POST to submit leads." });
 }
