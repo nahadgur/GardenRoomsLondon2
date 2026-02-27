@@ -9,7 +9,7 @@ type FormState = {
   message: string;
 };
 
-export default function LeadForm() {
+export function LeadForm() {
   const [form, setForm] = useState<FormState>({
     name: "",
     email: "",
@@ -65,13 +65,7 @@ export default function LeadForm() {
 
   return (
     <form onSubmit={onSubmit} style={{ display: "grid", gap: 12, maxWidth: 520 }}>
-      <input
-        name="name"
-        value={form.name}
-        onChange={onChange}
-        placeholder="Name"
-        required
-      />
+      <input name="name" value={form.name} onChange={onChange} placeholder="Name" required />
       <input
         name="email"
         value={form.email}
@@ -80,19 +74,8 @@ export default function LeadForm() {
         type="email"
         required
       />
-      <input
-        name="phone"
-        value={form.phone}
-        onChange={onChange}
-        placeholder="Phone"
-      />
-      <textarea
-        name="message"
-        value={form.message}
-        onChange={onChange}
-        placeholder="Message"
-        rows={4}
-      />
+      <input name="phone" value={form.phone} onChange={onChange} placeholder="Phone" />
+      <textarea name="message" value={form.message} onChange={onChange} placeholder="Message" rows={4} />
 
       <button type="submit" disabled={status === "submitting"}>
         {status === "submitting" ? "Sending..." : "Send"}
@@ -113,3 +96,5 @@ export default function LeadForm() {
     </form>
   );
 }
+
+export default LeadForm;
