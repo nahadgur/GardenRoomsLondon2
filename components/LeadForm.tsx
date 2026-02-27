@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 
+type LeadFormProps = {
+  sourcePage?: string;
+};
+
 type FormState = {
   name: string;
   email: string;
@@ -9,7 +13,7 @@ type FormState = {
   message: string;
 };
 
-export function LeadForm() {
+export function LeadForm({ sourcePage }: LeadFormProps) {
   const [form, setForm] = useState<FormState>({
     name: "",
     email: "",
@@ -39,7 +43,8 @@ export function LeadForm() {
           email: form.email,
           phone: form.phone,
           message: form.message,
-          source: "Website",
+          // Keep this key as "source" since your Apps Script reads payload.source
+          source: sourcePage || "Website",
         }),
       });
 
@@ -75,7 +80,13 @@ export function LeadForm() {
         required
       />
       <input name="phone" value={form.phone} onChange={onChange} placeholder="Phone" />
-      <textarea name="message" value={form.message} onChange={onChange} placeholder="Message" rows={4} />
+      <textarea
+        name="message"
+        value={form.message}
+        onChange={onChange}
+        placeholder="Message"
+        rows={4}
+      />
 
       <button type="submit" disabled={status === "submitting"}>
         {status === "submitting" ? "Sending..." : "Send"}
