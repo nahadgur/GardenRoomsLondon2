@@ -1,108 +1,100 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
-// Google Apps Script Web App (your /exec endpoint)
-// Runs server-side so your forms work from any page without browser CORS headaches.
-// If you redeploy Apps Script, update this URL.
-const APPS_SCRIPT_EXEC_URL =
-  'https://script.google.com/macros/s/AKfycby0H_SEuwr9h-lExDoYHhCLD_vZrCEbQ-xFKdC4Iel-h7r5vxnHx-1V32tG_GAtgvap2w/exec';
+type LeadPayload = {
+  name?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  message?: string;
+  notes?: string;
+  source?: string;
+};
 
-/**
- * POST /api/leads/
- *
- * Receives lead form submissions.
- *
- * In production, replace the console.log with your preferred backend:
- * - Firestore: import { getFirestore, collection, addDoc } from 'firebase/firestore';
- * - Webhook: fetch('https://hooks.zapier.com/your-webhook', { ... })
- * - Email: Use Resend, SendGrid, or similar
- * - Google Sheets: Use the Sheets API
- */
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
+    const APPS_SCRIPT_EXEC_URL = process.env.APPS_SCRIPT_EXEC_URL;
 
-    // Validate required fields
-    const required = ['name', 'phone', 'email', 'service', 'postcode'];
-    for (const field of required) {
-      if (!body[field]) {
-        return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
-      }
+    if (!APPS_SCRIPT_EXEC_URL) {
+      return NextResponse.json(
+        { ok: false, error: "Missing APPS_SCRIPT_EXEC_URL environment variable." },
+        { status: 500 }
+      );
     }
 
-    // Log the lead (replace with your actual backend)
-    const lead = {
-      ...body,
-      receivedAt: new Date().toISOString(),
-      ip: request.headers.get('x-forwarded-for') || 'unknown',
-      userAgent: request.headers.get('user-agent') || 'unknown',
+    const body = (await req.json()) as LeadPayload;
+
+    // Normalize fields a bit (optional, but helps consistency)
+    const payloadToSend = {
+      name: (body.name || body.fullName || "").toString().trim(),
+      email: (body.email || "").toString().trim(),
+      phone: (body.phone || body.mobile || "").toString().trim(),
+      message: (body.message || body.notes || "").toString().trim(),
+      source: (body.source || "Website").toString().trim(),
     };
 
-    console.log('📋 New Lead:', JSON.stringify(lead, null, 2));
-
-    // Forward to Google Apps Script → Google Sheet
     const appsScriptRes = await fetch(APPS_SCRIPT_EXEC_URL, {
-      method: 'POST',
-      headers: {
-        // Apps Script can be picky; sending as text/plain is very robust.
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify({
-        name: lead.name,
-        phone: lead.phone,
-        email: lead.email,
-        postcode: lead.postcode,
-        service: lead.service,
-        description: lead.description || '',
-        sourcePage: lead.sourcePage || '',
-        submittedAt: lead.submittedAt || '',
-        receivedAt: lead.receivedAt,
-        ip: lead.ip,
-        userAgent: lead.userAgent,
-      }),
-      cache: 'no-store',
+      method: "POST",
+      // Apps Script Web Apps commonly work best with text/plain JSON.
+      // If your parsePayload_ expects application/json, switch this to application/json.
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payloadToSend),
+      // no-store helps avoid any caching weirdness
+      cache: "no-store",
     });
 
-    const appsScriptText = await appsScriptRes.text();
     let appsScriptJson: any = null;
+    const rawText = await appsScriptRes.text();
+
+    // Try to parse JSON if possible, but keep raw text too (useful when Apps Script returns HTML)
     try {
-      appsScriptJson = JSON.parse(appsScriptText);
+      appsScriptJson = JSON.parse(rawText);
     } catch {
-      appsScriptJson = { raw: appsScriptText };
+      appsScriptJson = null;
     }
 
-    if (!appsScriptRes.ok) {
+    // Treat "ok:false" as failure even if HTTP is 200
+    const okFromScript = appsScriptJson?.ok === true;
+
+    if (!appsScriptRes.ok || !okFromScript) {
       return NextResponse.json(
         {
-          error: 'Failed to forward lead to Google Sheet (Apps Script error).',
+          ok: false,
+          error: "Apps Script call failed.",
           appsScriptStatus: appsScriptRes.status,
-          appsScriptResponse: appsScriptJson,
+          appsScriptOk: appsScriptRes.ok,
+          appsScriptParsed: appsScriptJson,
+          appsScriptRaw: rawText?.slice(0, 2000), // avoid giant dumps
           hint:
-            'Most common fix: redeploy your Apps Script Web App with Execute as "Me" and Who has access: "Anyone". Then paste the newest /exec URL into app/api/leads/route.ts.',
+            "Check that your Apps Script is deployed as a Web App (/s/.../exec), access is set correctly, and doPost parses the posted body.",
         },
         { status: 502 }
       );
     }
 
-    // --- WEBHOOK EXAMPLE (uncomment and configure) ---
-    // await fetch(process.env.WEBHOOK_URL!, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(lead),
-    // });
-
-    // --- FIRESTORE EXAMPLE (uncomment and configure) ---
-    // import { initializeApp } from 'firebase/app';
-    // import { getFirestore, collection, addDoc } from 'firebase/firestore';
-    // const db = getFirestore(app);
-    // await addDoc(collection(db, 'leads'), lead);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Lead received and forwarded to Google Sheet',
-      appsScript: appsScriptJson,
-    });
-  } catch (error) {
-    console.error('Lead submission error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: true,
+        message: "Lead submitted successfully.",
+        appsScript: appsScriptJson,
+      },
+      { status: 200 }
+    );
+  } catch (err: any) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: String(err?.message || err),
+      },
+      { status: 500 }
+    );
   }
+}
+
+// Optional: If you want GET to return a friendly message instead of 405
+export async function GET() {
+  return NextResponse.json(
+    { ok: true, message: "Lead endpoint is up. Use POST to submit leads." },
+    { status: 200 }
+  );
 }
