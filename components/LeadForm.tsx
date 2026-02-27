@@ -4,6 +4,8 @@ import { useState } from "react";
 
 type LeadFormProps = {
   sourcePage?: string;
+  defaultService?: string;
+  isInline?: boolean;
 };
 
 type FormState = {
@@ -13,7 +15,7 @@ type FormState = {
   message: string;
 };
 
-export function LeadForm({ sourcePage }: LeadFormProps) {
+export function LeadForm({ sourcePage, defaultService, isInline }: LeadFormProps) {
   const [form, setForm] = useState<FormState>({
     name: "",
     email: "",
@@ -43,7 +45,7 @@ export function LeadForm({ sourcePage }: LeadFormProps) {
           email: form.email,
           phone: form.phone,
           message: form.message,
-          // Keep this key as "source" since your Apps Script reads payload.source
+          service: defaultService || "",
           source: sourcePage || "Website",
         }),
       });
