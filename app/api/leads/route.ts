@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 const APPS_SCRIPT_EXEC_URL =
   process.env.APPS_SCRIPT_EXEC_URL ||
-  "https://script.google.com/macros/s/AKfycby0H_SEuwr9h-lExDoYHhCLD_vZrCEbQ-xFKdC4Ie1-h7r5vxnHx-1V32tG_GAtgvap2w/exec";
+  "https://script.google.com/macros/library/d/16jTMgsYwZ74_VDUuUW2ZMZklTepH3OahYMgaircBFlrIMkGF8QlW0XvP/4";
 
 type LeadPayload = {
   name?: string;
