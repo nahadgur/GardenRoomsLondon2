@@ -9,6 +9,7 @@ type LeadPayload = {
   message?: string;
   notes?: string;
   source?: string;
+  service?: string;
 };
 
 export async function POST(req: Request) {
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
       phone: (body.phone || body.mobile || "").toString().trim(),
       message: (body.message || body.notes || "").toString().trim(),
       source: (body.source || "Website").toString().trim(),
+      service: (body.service || "").toString().trim(),
     };
 
     const appsScriptRes = await fetch(APPS_SCRIPT_EXEC_URL, {
