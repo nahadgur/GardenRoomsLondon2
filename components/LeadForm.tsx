@@ -12,21 +12,33 @@ type FormState = {
   name: string;
   email: string;
   phone: string;
+  service: string;
   message: string;
 };
+
+const SERVICE_OPTIONS = [
+  { value: "",                          label: "Select a service…" },
+  { value: "garden-office-installation", label: "Garden Office Installation" },
+  { value: "soundproof-music-studios",   label: "Soundproof Music Studios" },
+  { value: "garden-gyms",               label: "Garden Gyms" },
+  { value: "bespoke-garden-rooms",      label: "Bespoke Garden Rooms" },
+  { value: "garden-annexes",            label: "Garden Annexes" },
+  { value: "garden-art-studios",        label: "Garden Art Studios" },
+];
 
 export function LeadForm({ sourcePage, defaultService, isInline }: LeadFormProps) {
   const [form, setForm] = useState<FormState>({
     name: "",
     email: "",
     phone: "",
+    service: defaultService || "",
     message: "",
   });
 
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
-  function onChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function onChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   }
@@ -45,7 +57,7 @@ export function LeadForm({ sourcePage, defaultService, isInline }: LeadFormProps
           email: form.email,
           phone: form.phone,
           message: form.message,
-          service: defaultService || "",
+          service: form.service,
           source: sourcePage || "Website",
         }),
       });
@@ -53,17 +65,13 @@ export function LeadForm({ sourcePage, defaultService, isInline }: LeadFormProps
       const data = await res.json().catch(() => null);
 
       if (!res.ok || data?.ok === false) {
-        const msg =
-          data?.error ||
-          data?.message ||
-          "Something went wrong submitting the form. Check Vercel function logs.";
         setStatus("error");
-        setErrorMessage(msg);
+        setErrorMessage(data?.error || "Something went wrong. Please try again.");
         return;
       }
 
       setStatus("success");
-      setForm({ name: "", email: "", phone: "", message: "" });
+      setForm({ name: "", email: "", phone: "", service: defaultService || "", message: "" });
     } catch (err: any) {
       setStatus("error");
       setErrorMessage(String(err?.message || err));
@@ -99,6 +107,23 @@ export function LeadForm({ sourcePage, defaultService, isInline }: LeadFormProps
         placeholder="Phone number"
         className={inputClass}
       />
+
+      {/* Service dropdown — hidden if a defaultService is pre-selected from the page */}
+      {!defaultService && (
+        <select
+          name="service"
+          value={form.service}
+          onChange={onChange}
+          className={inputClass + " appearance-none cursor-pointer"}
+        >
+          {SERVICE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value} disabled={opt.value === ""}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      )}
+
       <textarea
         name="message"
         value={form.message}
@@ -125,7 +150,7 @@ export function LeadForm({ sourcePage, defaultService, isInline }: LeadFormProps
       {status === "error" && (
         <div className="bg-red-50 border border-red-200 text-red-800 text-sm rounded-xl px-4 py-3">
           <div className="font-semibold mb-0.5">Submission failed</div>
-          <div className="whitespace-pre-wrap">{errorMessage}</div>
+          <div className="whitespace-pre-wrap text-xs">{errorMessage}</div>
         </div>
       )}
     </form>
