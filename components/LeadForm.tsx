@@ -70,40 +70,62 @@ export function LeadForm({ sourcePage, defaultService, isInline }: LeadFormProps
     }
   }
 
+  const inputClass =
+    "w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition";
+
   return (
-    <form onSubmit={onSubmit} style={{ display: "grid", gap: 12, maxWidth: 520 }}>
-      <input name="name" value={form.name} onChange={onChange} placeholder="Name" required />
+    <form onSubmit={onSubmit} className="flex flex-col gap-3">
+      <input
+        name="name"
+        value={form.name}
+        onChange={onChange}
+        placeholder="Your name"
+        required
+        className={inputClass}
+      />
       <input
         name="email"
         value={form.email}
         onChange={onChange}
-        placeholder="Email"
+        placeholder="Email address"
         type="email"
         required
+        className={inputClass}
       />
-      <input name="phone" value={form.phone} onChange={onChange} placeholder="Phone" />
+      <input
+        name="phone"
+        value={form.phone}
+        onChange={onChange}
+        placeholder="Phone number"
+        className={inputClass}
+      />
       <textarea
         name="message"
         value={form.message}
         onChange={onChange}
-        placeholder="Message"
-        rows={4}
+        placeholder="Tell us about your project (optional)"
+        rows={3}
+        className={inputClass + " resize-none"}
       />
 
-      <button type="submit" disabled={status === "submitting"}>
-        {status === "submitting" ? "Sending..." : "Send"}
+      <button
+        type="submit"
+        disabled={status === "submitting"}
+        className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-semibold py-3 px-6 rounded-xl transition-colors text-sm mt-1"
+      >
+        {status === "submitting" ? "Sending…" : "Get Free Quotes"}
       </button>
 
       {status === "success" && (
-        <div style={{ padding: 10, border: "1px solid #ddd" }}>
-          Thanks — we received your message.
+        <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-xl px-4 py-3">
+          ✓ Thanks — we'll be in touch shortly.
         </div>
       )}
 
       {status === "error" && (
-        <div style={{ padding: 10, border: "1px solid #f5c2c7" }}>
-          <div style={{ fontWeight: 600 }}>Submission failed</div>
-          <div style={{ whiteSpace: "pre-wrap" }}>{errorMessage}</div>
+        <div className="bg-red-50 border border-red-200 text-red-800 text-sm rounded-xl px-4 py-3">
+          <div className="font-semibold mb-0.5">Submission failed</div>
+          <div className="whitespace-pre-wrap">{errorMessage}</div>
         </div>
       )}
     </form>
